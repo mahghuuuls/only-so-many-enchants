@@ -1,5 +1,6 @@
 package com.mahghuuuls.onlysomanyenchants.event;
 
+import com.mahghuuuls.onlysomanyenchants.compat.PlayerExtraSlotAdapters;
 import com.mahghuuuls.onlysomanyenchants.core.ContainerSanitizer;
 import com.mahghuuuls.onlysomanyenchants.core.ItemEnchantmentSanitizer;
 import net.minecraft.entity.Entity;
@@ -14,6 +15,7 @@ import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.minecraftforge.event.entity.player.ItemFishedEvent;
+import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
@@ -118,6 +120,30 @@ public final class WorldAndEntityEnforcementHandler {
                 }
                 serverPlayer.updateHeldItem();
             }
+        }
+    }
+
+    @SubscribeEvent
+    public void onChunkLoad(ChunkEvent.Load event) {
+        if (event == null || event.getWorld() == null || event.getWorld().isRemote || event.getChunk() == null) {
+            return;
+        }
+        ContainerSanitizer.sanitizeChunkTileEntities(event.getChunk(), event.getWorld().rand);
+    }
+
+    @SubscribeEvent
+    public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event == null || event.player == null || event.player.world == null || event.player.world.isRemote) {
+            return;
+        }
+        PlayerExtraSlotAdapters.sanitizePlayerExtraSlots(event.player);
+        int modified = ContainerSanitizer.sanitizeContainer(
+                event.player.inventoryContainer,
+                "player_login",
+                event.player.getRNG()
+        );
+        if (modified > 0 && event.player instanceof EntityPlayerMP && event.player.inventoryContainer != null) {
+            event.player.inventoryContainer.detectAndSendChanges();
         }
     }
 

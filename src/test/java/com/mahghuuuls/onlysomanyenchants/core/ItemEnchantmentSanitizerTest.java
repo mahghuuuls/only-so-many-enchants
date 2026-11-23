@@ -289,4 +289,61 @@ class ItemEnchantmentSanitizerTest {
         assertEquals(3, report.getEntries().size());
         assertEquals(snapshot, tag);
     }
+
+    @Test
+    void sanitizesNestedContainersUpToDepthFourAndStopsSafelyAtDepthLimit() {
+        NBTTagCompound depth4Sword = swordTagWithThreeEnchantsAndMetadata();
+        NBTTagCompound depth4Nested = wrapInShulkerLevels(depth4Sword, ItemEnchantmentSanitizer.MAX_NESTED_DEPTH);
+        boolean modifiedDepth4 = ItemEnchantmentSanitizer.sanitizeNestedNbt(
+                depth4Nested, 1, "depth4_test", new Random(61L), TEST_RESOLVER, null, 0
+        );
+        assertTrue(modifiedDepth4);
+        assertEquals(1, ItemEnchantmentSanitizer.countDistinctEnchantments(
+                unwrapShulkerLevels(depth4Nested, ItemEnchantmentSanitizer.MAX_NESTED_DEPTH),
+                TEST_RESOLVER
+        ));
+
+        NBTTagCompound depth5Sword = swordTagWithThreeEnchantsAndMetadata();
+        NBTTagCompound depth5Nested = wrapInShulkerLevels(depth5Sword, ItemEnchantmentSanitizer.MAX_NESTED_DEPTH + 1);
+        boolean modifiedDepth5 = ItemEnchantmentSanitizer.sanitizeNestedNbt(
+                depth5Nested, 1, "depth5_test", new Random(62L), TEST_RESOLVER, null, 0
+        );
+        assertFalse(modifiedDepth5);
+        assertEquals(3, ItemEnchantmentSanitizer.countDistinctEnchantments(
+                unwrapShulkerLevels(depth5Nested, ItemEnchantmentSanitizer.MAX_NESTED_DEPTH + 1),
+                TEST_RESOLVER
+        ));
+    }
+
+    private static NBTTagCompound wrapInShulkerLevels(NBTTagCompound innerTag, int levels) {
+        NBTTagCompound current = innerTag;
+        for (int i = 0; i < levels; i++) {
+            NBTTagCompound entry = new NBTTagCompound();
+            entry.setByte("Slot", (byte) 0);
+            entry.setString("id", i == 0 ? "minecraft:diamond_sword" : "minecraft:purple_shulker_box");
+            entry.setTag("tag", current);
+
+            NBTTagList items = new NBTTagList();
+            items.appendTag(entry);
+
+            NBTTagCompound blockEntityTag = new NBTTagCompound();
+            blockEntityTag.setTag(ItemEnchantmentSanitizer.TAG_ITEMS, items);
+
+            NBTTagCompound outer = new NBTTagCompound();
+            outer.setTag(ItemEnchantmentSanitizer.TAG_BLOCK_ENTITY, blockEntityTag);
+            current = outer;
+        }
+        return current;
+    }
+
+    private static NBTTagCompound unwrapShulkerLevels(NBTTagCompound outer, int levels) {
+        NBTTagCompound current = outer;
+        for (int i = 0; i < levels; i++) {
+            current = current.getCompoundTag(ItemEnchantmentSanitizer.TAG_BLOCK_ENTITY)
+                    .getTagList(ItemEnchantmentSanitizer.TAG_ITEMS, Constants.NBT.TAG_COMPOUND)
+                    .getCompoundTagAt(0)
+                    .getCompoundTag("tag");
+        }
+        return current;
+    }
 }

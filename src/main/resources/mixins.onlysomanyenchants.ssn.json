@@ -1,0 +1,9 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.mahghuuuls.onlysomanyenchants.compat.ssn",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinSsnConnectableLink"
+  ]
+}

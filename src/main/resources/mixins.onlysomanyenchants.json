@@ -14,7 +14,8 @@
     "MixinEntityVillager",
     "MixinEntityPlayerMPTrades",
     "MixinCommandGive",
-    "MixinNetHandlerPlayServer"
+    "MixinNetHandlerPlayServer",
+    "MixinContainer"
   ],
   "server": [],
   "client": [

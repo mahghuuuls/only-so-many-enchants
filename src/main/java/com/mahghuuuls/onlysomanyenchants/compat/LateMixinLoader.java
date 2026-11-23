@@ -13,6 +13,8 @@ public final class LateMixinLoader implements ILateMixinLoader {
 
     public static final String EASY_MAGIC_MOD_ID = "easymagic";
     public static final String EASY_MAGIC_MIXIN_CONFIG = "mixins.onlysomanyenchants.easymagic.json";
+    public static final String STORAGE_NETWORK_MOD_ID = "storagenetwork";
+    public static final String STORAGE_NETWORK_MIXIN_CONFIG = "mixins.onlysomanyenchants.ssn.json";
 
     private final Predicate<String> modLoadedCheck;
 
@@ -26,9 +28,12 @@ public final class LateMixinLoader implements ILateMixinLoader {
 
     @Override
     public List<String> getMixinConfigs() {
-        List<String> configs = new ArrayList<String>(1);
+        List<String> configs = new ArrayList<String>(2);
         if (isModPresent(EASY_MAGIC_MOD_ID)) {
             configs.add(EASY_MAGIC_MIXIN_CONFIG);
+        }
+        if (isModPresent(STORAGE_NETWORK_MOD_ID)) {
+            configs.add(STORAGE_NETWORK_MIXIN_CONFIG);
         }
         return Collections.unmodifiableList(configs);
     }
@@ -40,6 +45,9 @@ public final class LateMixinLoader implements ILateMixinLoader {
         }
         if (EASY_MAGIC_MIXIN_CONFIG.equals(context.mixinConfig())) {
             return context.isModPresent(EASY_MAGIC_MOD_ID);
+        }
+        if (STORAGE_NETWORK_MIXIN_CONFIG.equals(context.mixinConfig())) {
+            return context.isModPresent(STORAGE_NETWORK_MOD_ID);
         }
         return false;
     }

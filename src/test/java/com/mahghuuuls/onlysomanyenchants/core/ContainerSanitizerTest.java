@@ -10,6 +10,8 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.tileentity.TileEntityChest;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.village.MerchantRecipe;
 import net.minecraft.village.MerchantRecipeList;
 import net.minecraftforge.items.IItemHandlerModifiable;
@@ -216,5 +218,28 @@ class ContainerSanitizerTest {
         TrimResult outsideAnvil = ItemEnchantmentSanitizer.sanitizePassiveSetEnchantments(guardedSword, new Random(42L));
         assertTrue(outsideAnvil.isModified(), "Outside anvil computation, passive setEnchantments must trim to cap");
         assertEquals(1, ItemEnchantmentSanitizer.countDistinctEnchantments(guardedSword));
+    }
+
+    @Test
+    void sanitizeTileEntitySkipsUngeneratedLootChestAndTrimsPopulatedChest() {
+        ResourceLocation lootTableId = new ResourceLocation("minecraft", "chests/simple_dungeon");
+        TileEntityChest ungeneratedChest = new TileEntityChest();
+        ungeneratedChest.setLootTable(lootTableId, 12345L);
+
+        int skipped = ContainerSanitizer.sanitizeTileEntity(
+                ungeneratedChest, 1, "chunk_load", new Random(51L), TEST_RESOLVER, null
+        );
+        assertEquals(0, skipped);
+        assertEquals(lootTableId, ungeneratedChest.getLootTable(), "Ungenerated loot chest must keep its loot table intact");
+
+        TileEntityChest populatedChest = new TileEntityChest();
+        populatedChest.setInventorySlotContents(0, overLimitSword());
+        int modified = ContainerSanitizer.sanitizeTileEntity(
+                populatedChest, 1, "chunk_load", new Random(52L), TEST_RESOLVER, null
+        );
+        assertEquals(1, modified);
+        assertEquals(1, ItemEnchantmentSanitizer.countDistinctEnchantments(
+                populatedChest.getStackInSlot(0).getTagCompound(), TEST_RESOLVER
+        ));
     }
 }

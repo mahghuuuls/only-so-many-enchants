@@ -103,6 +103,13 @@ public final class ContainerSanitizer {
                 if (slot instanceof SlotItemHandler) {
                     SlotItemHandler handlerSlot = (SlotItemHandler) slot;
                     writeBackToItemHandler(handlerSlot.getItemHandler(), handlerSlot.getSlotIndex(), stack, sourcePath, logger);
+                    try {
+                        slot.onSlotChanged();
+                    } catch (RuntimeException ex) {
+                        if (logger != null) {
+                            logger.logBoundaryWarning(sourcePath, "SlotItemHandler onSlotChanged failed: " + ex.getClass().getSimpleName());
+                        }
+                    }
                 } else {
                     try {
                         slot.onSlotChanged();
@@ -202,31 +209,53 @@ public final class ContainerSanitizer {
         }
         int totalModified = 0;
         for (TileEntity tileEntity : chunk.getTileEntityMap().values()) {
-            if (tileEntity == null || tileEntity.isInvalid()) {
-                continue;
-            }
-            // Skip ungenerated loot containers so player Luck and loot-table generation remain untouched until opened.
-            if (tileEntity instanceof TileEntityLockableLoot && ((TileEntityLockableLoot) tileEntity).getLootTable() != null) {
-                continue;
-            }
-            boolean handled = false;
-            try {
-                if (tileEntity.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null)) {
-                    IItemHandler handler = tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
-                    if (handler != null) {
-                        totalModified += sanitizeItemHandler(handler, tileEntity, "chunk_load", random);
-                        handled = true;
-                    }
+            totalModified += sanitizeTileEntity(
+                    tileEntity,
+                    ModConfig.getEffectiveCap(),
+                    "chunk_load",
+                    random,
+                    EnchantmentResolver.FORGE,
+                    DiagnosticLogger.get()
+            );
+        }
+        return totalModified;
+    }
+
+    public static int sanitizeTileEntity(
+            TileEntity tileEntity,
+            int maxDistinct,
+            String sourcePath,
+            Random random,
+            EnchantmentResolver resolver,
+            DiagnosticLogger logger
+    ) {
+        if (tileEntity == null || tileEntity.isInvalid()) {
+            return 0;
+        }
+        // Skip ungenerated loot containers so player Luck and loot-table generation remain untouched until opened.
+        if (tileEntity instanceof TileEntityLockableLoot && ((TileEntityLockableLoot) tileEntity).getLootTable() != null) {
+            return 0;
+        }
+        boolean handled = false;
+        int totalModified = 0;
+        try {
+            if (tileEntity.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null)) {
+                IItemHandler handler = tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
+                if (handler != null) {
+                    totalModified += sanitizeItemHandler(handler, tileEntity, maxDistinct, sourcePath, random, resolver, logger, 0);
+                    handled = true;
                 }
-            } catch (RuntimeException ex) {
-                DiagnosticLogger.get().logBoundaryWarning("chunk_load", "TileEntity capability read failed on " + tileEntity.getClass().getSimpleName());
             }
-            if (!handled && tileEntity instanceof IInventory) {
-                int modified = sanitizeInventory((IInventory) tileEntity, "chunk_load", random);
-                if (modified > 0) {
-                    markTileAndChunkDirty(tileEntity);
-                    totalModified += modified;
-                }
+        } catch (RuntimeException ex) {
+            if (logger != null) {
+                logger.logBoundaryWarning(sourcePath, "TileEntity capability read failed on " + tileEntity.getClass().getSimpleName());
+            }
+        }
+        if (!handled && tileEntity instanceof IInventory) {
+            int modified = sanitizeInventory((IInventory) tileEntity, maxDistinct, sourcePath, random, resolver, logger);
+            if (modified > 0) {
+                markTileAndChunkDirty(tileEntity);
+                totalModified += modified;
             }
         }
         return totalModified;
