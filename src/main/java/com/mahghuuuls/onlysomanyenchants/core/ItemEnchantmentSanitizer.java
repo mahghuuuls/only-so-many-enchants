@@ -139,6 +139,13 @@ public final class ItemEnchantmentSanitizer {
         return new InspectionReport(itemId, entries.size(), cap, entries);
     }
 
+    public static TrimResult sanitizePassiveSetEnchantments(ItemStack stack, Random random) {
+        if (stack == null || stack.isEmpty() || AnvilComputationGuard.isInsideAnvilComputation()) {
+            return TrimResult.UNCHANGED;
+        }
+        return sanitizeStack(stack, "set_enchantments", random != null ? random : DEFAULT_RANDOM);
+    }
+
     public static TrimResult sanitizeStack(ItemStack stack, String sourcePath, Random random) {
         return sanitizeStack(stack, ModConfig.getEffectiveCap(), sourcePath, random, EnchantmentResolver.FORGE, DiagnosticLogger.get());
     }

@@ -4,6 +4,7 @@ import com.mahghuuuls.onlysomanyenchants.config.ModConfig;
 import com.mahghuuuls.onlysomanyenchants.core.AnvilComputationGuard;
 import com.mahghuuuls.onlysomanyenchants.diag.CommandOnlySoManyEnchants;
 import com.mahghuuuls.onlysomanyenchants.event.CommandEnchantGuardHandler;
+import com.mahghuuuls.onlysomanyenchants.event.WorldAndEntityEnforcementHandler;
 import com.mahghuuuls.onlysomanyenchants.network.AnvilFeedbackTracker;
 import com.mahghuuuls.onlysomanyenchants.network.NetworkHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -41,6 +42,7 @@ public class OnlySoManyEnchantsMod {
         MinecraftForge.EVENT_BUS.register(new ModConfig.ReloadHandler());
         MinecraftForge.EVENT_BUS.register(new AnvilFeedbackTracker.LifecycleHandler());
         MinecraftForge.EVENT_BUS.register(new CommandEnchantGuardHandler());
+        MinecraftForge.EVENT_BUS.register(new WorldAndEntityEnforcementHandler());
         proxy.preInit(event);
         LOGGER.info(
                 "Initialized {} {} (maxDistinctEnchantments={}, diagnosticMode={})",

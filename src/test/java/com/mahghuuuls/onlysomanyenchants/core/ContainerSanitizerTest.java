@@ -172,4 +172,49 @@ class ContainerSanitizerTest {
         assertEquals(1, modified);
         assertEquals(1, ItemEnchantmentSanitizer.countDistinctEnchantments(list.get(0).getItemToSell()));
     }
+
+    @Test
+    void sanitizeInventoryTrimsAndMarksDirtyOnlyWhenModified() {
+        AtomicInteger dirtyCalls = new AtomicInteger(0);
+        InventoryBasic inv = new InventoryBasic("loot", false, 3) {
+            @Override
+            public void markDirty() {
+                super.markDirty();
+                dirtyCalls.incrementAndGet();
+            }
+        };
+        inv.setInventorySlotContents(0, overLimitSword());
+        dirtyCalls.set(0);
+
+        int firstPass = ContainerSanitizer.sanitizeInventory(
+                inv, 1, "loot_chest", new Random(33L), TEST_RESOLVER, null
+        );
+        assertEquals(1, firstPass);
+        assertEquals(1, dirtyCalls.get(), "markDirty must run once when an item is trimmed");
+        assertEquals(1, ItemEnchantmentSanitizer.countDistinctEnchantments(inv.getStackInSlot(0).getTagCompound(), TEST_RESOLVER));
+
+        int secondPass = ContainerSanitizer.sanitizeInventory(
+                inv, 1, "loot_chest", new Random(34L), TEST_RESOLVER, null
+        );
+        assertEquals(0, secondPass);
+        assertEquals(1, dirtyCalls.get(), "markDirty must not run again when inventory is already within cap");
+    }
+
+    @Test
+    void passiveSetEnchantmentsSanitizerRespectsAnvilComputationGuard() {
+        ItemStack guardedSword = overLimitSword();
+        AnvilComputationGuard.reset();
+        try {
+            AnvilComputationGuard.enter();
+            TrimResult insideAnvil = ItemEnchantmentSanitizer.sanitizePassiveSetEnchantments(guardedSword, new Random(41L));
+            assertEquals(false, insideAnvil.isModified(), "Anvil computation guard must suppress passive setEnchantments trimming");
+            assertEquals(2, ItemEnchantmentSanitizer.countDistinctEnchantments(guardedSword));
+        } finally {
+            AnvilComputationGuard.reset();
+        }
+
+        TrimResult outsideAnvil = ItemEnchantmentSanitizer.sanitizePassiveSetEnchantments(guardedSword, new Random(42L));
+        assertTrue(outsideAnvil.isModified(), "Outside anvil computation, passive setEnchantments must trim to cap");
+        assertEquals(1, ItemEnchantmentSanitizer.countDistinctEnchantments(guardedSword));
+    }
 }

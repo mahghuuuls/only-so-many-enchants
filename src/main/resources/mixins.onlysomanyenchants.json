@@ -7,7 +7,14 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "MixinContainerRepair",
-    "MixinContainerEnchantment"
+    "MixinContainerEnchantment",
+    "MixinTileEntityLockableLoot",
+    "MixinLootTable",
+    "MixinEnchantmentHelper",
+    "MixinEntityVillager",
+    "MixinEntityPlayerMPTrades",
+    "MixinCommandGive",
+    "MixinNetHandlerPlayServer"
   ],
   "server": [],
   "client": [

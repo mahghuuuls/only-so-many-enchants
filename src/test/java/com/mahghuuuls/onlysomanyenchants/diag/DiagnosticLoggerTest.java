@@ -39,8 +39,30 @@ class DiagnosticLoggerTest {
                 Arrays.asList("minecraft:sharpness@4", "minecraft:looting@2"),
                 "cap_exceeded"
         );
+        logger.logBoundaryWarning("test", "warning");
+        logger.logEnchantmentGrant(
+                "enchanting_table(clue=minecraft:sharpness@3)",
+                "minecraft:diamond_sword",
+                1,
+                Collections.singletonList("minecraft:sharpness@3")
+        );
 
         assertTrue(lines.isEmpty());
+    }
+
+    @Test
+    void rateLimitsEnchantmentGrantAndFormatsOutput() {
+        AtomicBoolean enabled = new AtomicBoolean(true);
+        AtomicLong clock = new AtomicLong(5000L);
+        List<String> lines = new ArrayList<String>();
+        DiagnosticLogger logger = new DiagnosticLogger(enabled::get, clock::get, lines::add, 2000L);
+
+        logger.logEnchantmentGrant("enchanting_table(clue=minecraft:smite@4)", "minecraft:diamond_sword", 1, Collections.singletonList("minecraft:smite@4"));
+        clock.addAndGet(500L);
+        logger.logEnchantmentGrant("enchanting_table(clue=minecraft:smite@4)", "minecraft:diamond_sword", 1, Collections.singletonList("minecraft:smite@4"));
+        assertEquals(1, lines.size());
+        assertTrue(lines.get(0).contains("[OSME][ENCHANT]"));
+        assertTrue(lines.get(0).contains("granted=1[minecraft:smite@4]"));
     }
 
     @Test
