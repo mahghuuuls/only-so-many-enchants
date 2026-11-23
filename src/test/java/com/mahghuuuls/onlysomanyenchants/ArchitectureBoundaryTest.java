@@ -43,6 +43,43 @@ class ArchitectureBoundaryTest {
         );
     }
 
+    @Test
+    void mixinConfigsKeepClientMixinsOutOfCommonArray() throws IOException {
+        Path resourcesRoot = Paths.get("src", "main", "resources");
+        assertTrue(Files.isDirectory(resourcesRoot));
+
+        List<String> violations = new ArrayList<String>();
+        Pattern commonMixinsBlock = Pattern.compile("\"mixins\"\\s*:\\s*\\[(.*?)\\]", Pattern.DOTALL);
+        Pattern quotedString = Pattern.compile("\"([^\"]+)\"");
+
+        try (Stream<Path> walk = Files.list(resourcesRoot)) {
+            walk.filter(path -> path.getFileName().toString().startsWith("mixins.onlysomanyenchants")
+                            && path.getFileName().toString().endsWith(".json"))
+                    .forEach(path -> {
+                        try {
+                            String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+                            Matcher blockMatcher = commonMixinsBlock.matcher(content);
+                            if (blockMatcher.find()) {
+                                Matcher entryMatcher = quotedString.matcher(blockMatcher.group(1));
+                                while (entryMatcher.find()) {
+                                    String entry = entryMatcher.group(1);
+                                    if (entry.startsWith("client.") || entry.contains(".client.") || entry.contains("Gui")) {
+                                        violations.add(path.getFileName() + ": client mixin listed in common mixins array (" + entry + ")");
+                                    }
+                                }
+                            }
+                        } catch (IOException ex) {
+                            violations.add(path + ": failed to read (" + ex.getMessage() + ")");
+                        }
+                    });
+        }
+
+        assertTrue(
+                violations.isEmpty(),
+                "Mixin config side violations detected:\n - " + String.join("\n - ", violations)
+        );
+    }
+
     private static void checkFile(Path sourceRoot, Path file, List<String> violations) throws IOException {
         List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
         String relPath = sourceRoot.relativize(file).toString().replace('\\', '/');
@@ -77,8 +114,12 @@ class ArchitectureBoundaryTest {
                 if (trimmed.startsWith("//") || trimmed.startsWith("*")) {
                     continue;
                 }
-                if (trimmed.contains("net.minecraft.client.") || trimmed.contains("net.minecraftforge.client.")) {
-                    violations.add(relPath + ":" + (lineIdx + 1) + " references client-only package directly");
+                if (trimmed.contains("net.minecraft.client.")
+                        || trimmed.contains("net.minecraftforge.client.")
+                        || trimmed.contains(ROOT_PKG + ".client.")
+                        || trimmed.contains(ROOT_PKG + ".mixin.client.")
+                        || (!relPath.equals("OnlySoManyEnchantsMod.java") && trimmed.contains(ROOT_PKG + ".ClientProxy"))) {
+                    violations.add(relPath + ":" + (lineIdx + 1) + " references client-only package or class directly");
                 }
             }
         }

@@ -80,4 +80,8 @@ public final class EnchantmentPolicy {
         }
         return AnvilCapVerdict.allowed(Math.max(0, outputDistinctCount), cap);
     }
+
+    public static String formatCapRejectionMessage(int attemptedCount, int maxAllowed) {
+        return "This would give the item " + attemptedCount + " enchantments. The limit is " + maxAllowed + ".";
+    }
 }

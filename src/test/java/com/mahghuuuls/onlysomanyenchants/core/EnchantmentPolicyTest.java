@@ -110,5 +110,9 @@ class EnchantmentPolicyTest {
         assertFalse(AnvilComputationGuard.isInsideAnvilComputation());
         AnvilComputationGuard.exit();
         assertFalse(AnvilComputationGuard.isInsideAnvilComputation());
+        AnvilComputationGuard.enter();
+        assertTrue(AnvilComputationGuard.isInsideAnvilComputation(), "Extra exit must not underflow guard depth");
+        AnvilComputationGuard.reset();
+        assertFalse(AnvilComputationGuard.isInsideAnvilComputation());
     }
 }

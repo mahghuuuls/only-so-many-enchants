@@ -2,6 +2,7 @@ package com.mahghuuuls.onlysomanyenchants.core;
 
 import com.mahghuuuls.onlysomanyenchants.config.ModConfig;
 import com.mahghuuuls.onlysomanyenchants.diag.DiagnosticLogger;
+import net.minecraft.enchantment.Enchantment;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -56,6 +57,37 @@ public final class ItemEnchantmentSanitizer {
             return 0;
         }
         return countDistinctEnchantments(stack.getTagCompound(), EnchantmentResolver.FORGE);
+    }
+
+    public static boolean hasEnchantment(ItemStack stack, Enchantment enchantment) {
+        if (stack == null || stack.isEmpty() || !stack.hasTagCompound() || enchantment == null) {
+            return false;
+        }
+        return hasEnchantment(stack.getTagCompound(), Enchantment.getEnchantmentID(enchantment));
+    }
+
+    public static boolean hasEnchantment(NBTTagCompound tag, int enchantmentId) {
+        if (tag == null) {
+            return false;
+        }
+        if (tag.hasKey(TAG_ENCH, Constants.NBT.TAG_LIST)
+                && listContainsId(tag.getTagList(TAG_ENCH, Constants.NBT.TAG_COMPOUND), enchantmentId)) {
+            return true;
+        }
+        return tag.hasKey(TAG_STORED_ENCHANTMENTS, Constants.NBT.TAG_LIST)
+                && listContainsId(tag.getTagList(TAG_STORED_ENCHANTMENTS, Constants.NBT.TAG_COMPOUND), enchantmentId);
+    }
+
+    public static List<String> formatEnchantmentEntries(ItemStack stack) {
+        InspectionReport report = inspectStack(stack);
+        if (report.getEntries().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> formatted = new ArrayList<String>(report.getEntries().size());
+        for (InspectionReport.Entry entry : report.getEntries()) {
+            formatted.add(entry.formatCompact());
+        }
+        return formatted;
     }
 
     public static int countDistinctEnchantments(NBTTagCompound tag, EnchantmentResolver resolver) {
@@ -317,6 +349,17 @@ public final class ItemEnchantmentSanitizer {
             }
         }
         return modified;
+    }
+
+    private static boolean listContainsId(NBTTagList list, int enchantmentId) {
+        int count = list.tagCount();
+        for (int i = 0; i < count; i++) {
+            NBTTagCompound entry = list.getCompoundTagAt(i);
+            if (entry.hasKey("id", Constants.NBT.TAG_ANY_NUMERIC) && (entry.getShort("id") & 0xFFFF) == enchantmentId) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void collectValidIds(NBTTagList list, EnchantmentResolver resolver, Set<Integer> distinctIds) {
