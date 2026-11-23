@@ -3,6 +3,7 @@ package com.mahghuuuls.onlysomanyenchants.core;
 import com.mahghuuuls.onlysomanyenchants.config.ModConfig;
 import com.mahghuuuls.onlysomanyenchants.diag.DiagnosticLogger;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -440,5 +441,38 @@ public final class ItemEnchantmentSanitizer {
         }
         ResourceLocation registryName = stack.getItem().getRegistryName();
         return registryName != null ? registryName.toString() : stack.getItem().getClass().getSimpleName();
+    }
+
+    public static List<String> formatEnchantmentDataList(List<EnchantmentData> list) {
+        if (list == null || list.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> formatted = new ArrayList<String>(list.size());
+        for (EnchantmentData data : list) {
+            if (data == null || data.enchantment == null) {
+                continue;
+            }
+            formatted.add(formatEnchantmentData(data));
+        }
+        return formatted;
+    }
+
+    public static List<String> formatRemovedEnchantmentDataList(List<EnchantmentData> original, List<EnchantmentData> kept) {
+        if (original == null || original.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> removed = new ArrayList<String>();
+        for (EnchantmentData data : original) {
+            if (data != null && data.enchantment != null && (kept == null || !kept.contains(data))) {
+                removed.add(formatEnchantmentData(data));
+            }
+        }
+        return removed;
+    }
+
+    private static String formatEnchantmentData(EnchantmentData data) {
+        ResourceLocation id = data.enchantment.getRegistryName();
+        String name = id != null ? id.toString() : "id:" + Enchantment.getEnchantmentID(data.enchantment);
+        return name + "@" + data.enchantmentLevel;
     }
 }

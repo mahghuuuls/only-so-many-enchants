@@ -51,6 +51,41 @@ class DiagnosticLoggerTest {
     }
 
     @Test
+    void rateLimitsTrimAndFormatsAllRequiredFields() {
+        AtomicBoolean enabled = new AtomicBoolean(true);
+        AtomicLong clock = new AtomicLong(7000L);
+        List<String> lines = new ArrayList<String>();
+        DiagnosticLogger logger = new DiagnosticLogger(enabled::get, clock::get, lines::add, 2000L);
+
+        List<String> before = Arrays.asList("minecraft:sharpness@4", "minecraft:looting@2");
+        List<String> after = Collections.singletonList("minecraft:sharpness@4");
+        List<String> removed = Collections.singletonList("minecraft:looting@2");
+
+        logger.logTrim("easymagic_slot_hints(slot=2)", "minecraft:book", 1, 2, before, 1, after, removed);
+        clock.addAndGet(500L);
+        logger.logTrim("easymagic_slot_hints(slot=2)", "minecraft:book", 1, 2, before, 1, after, removed);
+        assertEquals(1, lines.size());
+
+        // Different slot path emits immediately.
+        logger.logTrim("easymagic_slot_hints(slot=1)", "minecraft:book", 1, 2, before, 1, after, removed);
+        assertEquals(2, lines.size());
+
+        // After rate-limit window expires, original event may emit again.
+        clock.addAndGet(2000L);
+        logger.logTrim("easymagic_slot_hints(slot=2)", "minecraft:book", 1, 2, before, 1, after, removed);
+        assertEquals(3, lines.size());
+
+        String first = lines.get(0);
+        assertTrue(first.contains("[OSME][TRIM]"));
+        assertTrue(first.contains("path=easymagic_slot_hints(slot=2)"));
+        assertTrue(first.contains("item=minecraft:book"));
+        assertTrue(first.contains("cap=1"));
+        assertTrue(first.contains("before=2[minecraft:sharpness@4, minecraft:looting@2]"));
+        assertTrue(first.contains("after=1[minecraft:sharpness@4]"));
+        assertTrue(first.contains("removed=[minecraft:looting@2]"));
+    }
+
+    @Test
     void rateLimitsEnchantmentGrantAndFormatsOutput() {
         AtomicBoolean enabled = new AtomicBoolean(true);
         AtomicLong clock = new AtomicLong(5000L);

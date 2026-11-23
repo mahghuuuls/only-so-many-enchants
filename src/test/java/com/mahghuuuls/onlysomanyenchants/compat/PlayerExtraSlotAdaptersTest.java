@@ -29,4 +29,14 @@ class PlayerExtraSlotAdaptersTest {
         assertFalse(adapters.isToolSlotsDisabled());
         assertFalse(adapters.isCosmeticArmorDisabled());
     }
+
+    @Test
+    void failingToolSlotsAdapterDisablesOnlyToolSlotsWithoutThrowing() {
+        PlayerExtraSlotAdapters adapters = new PlayerExtraSlotAdapters(PlayerExtraSlotAdapters.MOD_TOOL_SLOTS::equals);
+        assertEquals(0, adapters.sanitizeToolSlots(null, new Random(1L)));
+        assertTrue(adapters.isToolSlotsDisabled());
+        assertFalse(adapters.isBaublesDisabled());
+        assertFalse(adapters.isIntrinsicBackpackDisabled());
+        assertFalse(adapters.isCosmeticArmorDisabled());
+    }
 }

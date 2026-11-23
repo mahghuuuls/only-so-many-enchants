@@ -20,7 +20,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Mixin(ContainerEnchantment.class)
@@ -99,9 +98,9 @@ public abstract class MixinContainerEnchantment {
                 && (this.world == null || !this.world.isRemote)) {
             String sourcePath = "enchanting_table(clue=" + osme$formatClue(this.osme$promisedClueId, this.osme$promisedClueLevel) + ")";
             if (trimmed.size() < original.size()) {
-                List<String> beforeEntries = osme$formatDataList(original);
-                List<String> afterEntries = osme$formatDataList(trimmed);
-                List<String> removedEntries = osme$formatRemovedDataList(original, trimmed);
+                List<String> beforeEntries = ItemEnchantmentSanitizer.formatEnchantmentDataList(original);
+                List<String> afterEntries = ItemEnchantmentSanitizer.formatEnchantmentDataList(trimmed);
+                List<String> removedEntries = ItemEnchantmentSanitizer.formatRemovedEnchantmentDataList(original, trimmed);
                 DiagnosticLogger.get().logTrim(
                         sourcePath,
                         ItemEnchantmentSanitizer.describeItem(stack),
@@ -117,7 +116,7 @@ public abstract class MixinContainerEnchantment {
                         sourcePath,
                         ItemEnchantmentSanitizer.describeItem(stack),
                         cap,
-                        osme$formatDataList(trimmed)
+                        ItemEnchantmentSanitizer.formatEnchantmentDataList(trimmed)
                 );
             }
         }
@@ -136,36 +135,5 @@ public abstract class MixinContainerEnchantment {
                 ? enchantment.getRegistryName().toString()
                 : "id:" + clueId;
         return name + "@" + clueLevel;
-    }
-
-    @Unique
-    private static List<String> osme$formatDataList(List<EnchantmentData> list) {
-        List<String> formatted = new ArrayList<String>(list.size());
-        for (EnchantmentData data : list) {
-            if (data == null || data.enchantment == null) {
-                continue;
-            }
-            formatted.add(osme$formatData(data));
-        }
-        return formatted;
-    }
-
-    @Unique
-    private static List<String> osme$formatRemovedDataList(List<EnchantmentData> original, List<EnchantmentData> kept) {
-        List<String> removed = new ArrayList<String>();
-        for (EnchantmentData data : original) {
-            if (data != null && data.enchantment != null && !kept.contains(data)) {
-                removed.add(osme$formatData(data));
-            }
-        }
-        return removed;
-    }
-
-    @Unique
-    private static String osme$formatData(EnchantmentData data) {
-        String name = data.enchantment.getRegistryName() != null
-                ? data.enchantment.getRegistryName().toString()
-                : "id:" + Enchantment.getEnchantmentID(data.enchantment);
-        return name + "@" + data.enchantmentLevel;
     }
 }
