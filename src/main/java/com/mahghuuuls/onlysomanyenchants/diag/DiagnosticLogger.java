@@ -114,6 +114,22 @@ public final class DiagnosticLogger {
         sink.accept("[OSME][WARN] path=" + sourcePath + " detail=" + detail);
     }
 
+    public void logEnchantmentGrant(String sourcePath, String itemId, int cap, List<String> grantedEntries) {
+        if (!enabledSupplier.getAsBoolean()) {
+            return;
+        }
+        String key = "ENCHANT|" + sourcePath + "|" + itemId + "|" + cap + "|" + grantedEntries;
+        if (!allowEmit(key)) {
+            return;
+        }
+        sink.accept(
+                "[OSME][ENCHANT] path=" + sourcePath
+                        + " item=" + itemId
+                        + " cap=" + cap
+                        + " granted=" + (grantedEntries != null ? grantedEntries.size() : 0) + formatList(grantedEntries)
+        );
+    }
+
     public synchronized void clearRateLimitCache() {
         recentEvents.clear();
     }

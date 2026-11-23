@@ -204,6 +204,17 @@ class ArchitectureBoundaryTest {
                     violations.add(relPath + ": " + pkg + " package has forbidden internal dependency (" + imp + ")");
                 }
             }
+
+            if (pkg.equals(ROOT_PKG + ".compat") || pkg.startsWith(ROOT_PKG + ".compat.")) {
+                if (imp.startsWith(ROOT_PKG + ".")
+                        && !imp.equals(ROOT_PKG + ".Tags")
+                        && !imp.startsWith(ROOT_PKG + ".config.")
+                        && !imp.startsWith(ROOT_PKG + ".core.")
+                        && !imp.startsWith(ROOT_PKG + ".diag.")
+                        && !imp.startsWith(pkg + ".")) {
+                    violations.add(relPath + ": " + pkg + " package has forbidden internal dependency (" + imp + ")");
+                }
+            }
         }
     }
 }

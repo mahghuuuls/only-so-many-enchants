@@ -79,6 +79,47 @@ class EnchantmentPolicyTest {
         );
         assertEquals(2, firstCap2.size());
         assertEquals(firstCap2, secondCap2);
+        assertTrue(rolled.containsAll(firstCap2));
+        assertFalse(firstCap2.get(0).equals(firstCap2.get(1)), "Trimmed entries must remain distinct");
+
+        // Changing seed or slot must produce distinct RNG streams rather than returning a fixed prefix.
+        boolean seedOrSlotChangedOutput = false;
+        for (int altSlot = 0; altSlot < 3 && !seedOrSlotChangedOutput; altSlot++) {
+            for (int altSeed = 1; altSeed <= 20; altSeed++) {
+                List<String> alt = EnchantmentPolicy.trimEnchantmentList(
+                        rolled, 1, EnchantmentPolicy.createEnchantingTableRandom(424242 + altSeed, altSlot)
+                );
+                if (!alt.equals(firstCap1)) {
+                    seedOrSlotChangedOutput = true;
+                    break;
+                }
+            }
+        }
+        assertTrue(seedOrSlotChangedOutput, "Enchanting-table RNG must vary across seeds/slots");
+    }
+
+    @Test
+    void trimEnchantmentListPassesThroughEmptyAndShortListsAndIsFairAcrossSeeds() {
+        assertEquals(null, EnchantmentPolicy.trimEnchantmentList(null, 1, new Random(1L)));
+        List<String> empty = Arrays.asList();
+        assertEquals(empty, EnchantmentPolicy.trimEnchantmentList(empty, 1, new Random(1L)));
+        List<String> single = Arrays.asList("sharpness@4");
+        assertEquals(single, EnchantmentPolicy.trimEnchantmentList(single, 1, new Random(1L)));
+
+        List<String> rolled = Arrays.asList("sharpness@4", "unbreaking@3", "looting@2");
+        int trials = 3000;
+        int[] counts = new int[3];
+        for (int seed = 0; seed < trials; seed++) {
+            List<String> trimmed = EnchantmentPolicy.trimEnchantmentList(
+                    rolled, 1, EnchantmentPolicy.createEnchantingTableRandom(seed * 7919, seed % 3)
+            );
+            assertEquals(1, trimmed.size());
+            counts[rolled.indexOf(trimmed.get(0))]++;
+        }
+        for (int idx = 0; idx < 3; idx++) {
+            double freq = (double) counts[idx] / trials;
+            assertTrue(freq >= 0.28 && freq <= 0.38, "Enchanting seed distribution out of bounds for idx " + idx + ": " + freq);
+        }
     }
 
     @Test

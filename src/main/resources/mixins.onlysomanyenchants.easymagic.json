@@ -1,0 +1,15 @@
+{
+  "package": "com.mahghuuuls.onlysomanyenchants.compat.easymagic",
+  "required": false,
+  "refmap": "mixins.onlysomanyenchants.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8.5",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinEasyMagicContainerHints"
+  ],
+  "server": [],
+  "client": [
+    "MixinEasyMagicGuiHints"
+  ]
+}
